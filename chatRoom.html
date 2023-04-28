@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    <ul id="messageContainer"></ul>
+    <form action="">
+        <input type="text" id="senderMessage" placeholder="write your message">
+        <input type="submit" value="Send">
+    </form>
+</body>
+</html>
+<script>
+    const server=io("http://localhost:4100",{transports:["websocket"]});
+
+    const UserURL=new URLSearchParams(window.location.search);
+    const userName=UserURL.get("userName");
+    const roomId=UserURL.get("roomId");
+
+/*---------------------------------- User Info sending ----------------------------------*/
+    console.log(userName,roomId)
+    server.emit("userInfo",{userName,roomId});
+
+/*---------------------------------- Welcome Message ----------------------------------*/
+
+    let messageContainer=document.getElementById("messageContainer");
+    let senderMessage=document.getElementById("senderMessage");
+    let form=document.querySelector("form");
+
+
+    server.on("welcome",(data)=>{
+        let li=document.createElement("p");
+        li.textContent=data;
+        messageContainer.appendChild(li)
+    })
+
+    form.addEventListener("submit",async(e)=>{
+        e.preventDefault();
+
+        let msg=await senderMessage.value;
+        console.log(msg)
+        if(msg){
+            server.emit("message",msg);
+            senderMessage.value='';
+        }
+        
+    })
+    server.on("message",(data)=>{
+            let i=document.createElement("i");
+            i.textContent=`${data.name} at ${data.time} :`;
+            messageContainer.appendChild(i)
+            let li=document.createElement("p");
+            li.textContent=`===> ${data.data}`;
+            messageContainer.appendChild(li)
+        })
+    server.on("userLeft",(data)=>{
+        let i=document.createElement("i");
+            i.textContent=`${data.name} at ${data.time}, ${data.data}`;
+            messageContainer.appendChild(i)
+    })
+</script>
